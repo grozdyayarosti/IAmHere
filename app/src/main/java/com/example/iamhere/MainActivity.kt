@@ -1,34 +1,51 @@
 package com.example.iamhere
+import DatabaseHelper
 import android.content.Intent
 import android.Manifest
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
-import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import kotlin.properties.Delegates
+import android.util.Log
+import android.widget.LinearLayout
+import androidx.activity.result.contract.ActivityResultContracts
+import java.util.*
+import javax.mail.*
+import javax.mail.internet.InternetAddress
+import javax.mail.internet.MimeMessage
+
+fun Int.dpToPx(context: Context): Int = (this * context.resources.displayMetrics.density).toInt()
 
 class MainActivity : AppCompatActivity() {
 
-//    private var latitude: Double = Nullable
+    //    private var latitude: Double = Nullable
+    private lateinit var dbHelper: DatabaseHelper
     private var latitude by Delegates.notNull<Double>()
     private var longitude by Delegates.notNull<Double>()
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationTextView: TextView
     private val LOCATION_PERMISSION_REQUEST_CODE = 1001
+    private lateinit var emailContainer: LinearLayout
+    private val addEmailLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            refreshEmailList()
+        }
+    }
+    val sender = EmailSender(
+        username = "semenzabolotko.ib@gmail.com",
+        password = ""  // Используйте App Password для Gmail
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,87 +53,85 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val button: Button = findViewById(R.id.button)
+        val emailContainer = findViewById<LinearLayout>(R.id.emailContainer)
         locationTextView = findViewById(R.id.locationTextView)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Проверяем разрешения на доступ к местоположению
         checkLocationPermission()
 
-//        val label = findViewById<TextView>(R.id.textView)
-//        val userData: EditText = findViewById(R.id.editTextText)
-//        val button: Button = findViewById(R.id.button)
-//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-//            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-//            insets
-//        }
+        // 2. Создаем список email-адресов
+        dbHelper = DatabaseHelper(this)
+        dbHelper.refreshTable()
+
+        // Получаем email-адреса из БД
+        val emails = dbHelper.getAllEmails()
+        // 3. Динамически добавляем TextView для каждого email
+        emails.forEach { email ->
+            val textView = TextView(this).apply {
+                text = email
+                textSize = 16f
+                setPadding(
+                    0, 8.dpToPx(this@MainActivity),
+                    0, 8.dpToPx(this@MainActivity)
+                ) // Добавляем отступы
+            }
+            emailContainer.addView(textView)
+        }
+
+        findViewById<Button>(R.id.addButton).setOnClickListener {
+            val intent = Intent(this, AddEmailActivity::class.java)
+            addEmailLauncher.launch(intent)
+        }
 
         button.setOnClickListener {
-//            val latitude = 59.9343  // Пример: координаты Санкт-Петербурга
-//            val longitude = 30.3351
-
-            // Формируем текст с координатами и ссылкой на карты
-            val locationText = """
-                Моё текущее местоположение:
-                Широта: $latitude
-                Долгота: $longitude
-                
-                Ссылка на карты: 
-                https://www.google.com/maps?q=$latitude,$longitude
-            """.trimIndent()
-
-//            sendLocationByEmail(
-//                email = "semenzabolotko.ib@gmail.com", // Замените на нужный email
-//                subject = "Моё местоположение",
-//                message = locationText
-//            )
-            openGmailDirectly(
-                context = this,
-                emailTo = "semenzabolotko.ib@gmail.com",
-                subject = "Моё местоположение",
-                body = "Широта: $latitude, Долгота: $longitude\nhttps://maps.google.com?q=59.9343,30.3351"
+            sender.sendEmail(
+                to = "semenzabolotko.ib@gmail.com",
+                subject = "SOS! Моё местоположение",
+                body = """
+                    Широта: $latitude
+                    Долгота: $longitude
+                    
+                    Ссылка на карты: 
+                    https://www.google.com/maps?q=$latitude,$longitude
+                """.trimIndent()
             )
-
-//            val text = userData.text.toString().trim()
-//            if (text == "toast")
-//                Toast.makeText(this, "User enter toast", Toast.LENGTH_SHORT).show()
-//            else
-//                label.text = text
-
         }
     }
 
-    private fun openGmailDirectly(
-        context: Context,
-        emailTo: String,
-        subject: String,
-        body: String
-    ) {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(emailTo))  // Получатель
-            putExtra(Intent.EXTRA_SUBJECT, subject)         // Тема
-            putExtra(Intent.EXTRA_TEXT, body)              // Текст
-            setPackage("com.google.android.gm")             // Указываем пакет Gmail
-        }
+    class EmailSender(private val username: String, private val password: String) {
+        fun sendEmail(to: String, subject: String, body: String) {
+            Thread {
+                try {
+                    // Настройки SMTP для Gmail
+                    val props = Properties().apply {
+                        put("mail.smtp.host", "smtp.gmail.com")
+                        put("mail.smtp.port", "587")
+                        put("mail.smtp.auth", "true")
+                        put("mail.smtp.starttls.enable", "true")
+                    }
 
-        try {
-            context.startActivity(intent)
-        } catch (e: ActivityNotFoundException) {
-            // Если Gmail не установлен, предлагаем альтернативу
-            Toast.makeText(context, "Gmail не найден", Toast.LENGTH_SHORT).show()
+                    // Создаем сессию с аутентификацией
+                    val session = Session.getInstance(props, object : Authenticator() {
+                        override fun getPasswordAuthentication(): PasswordAuthentication {
+                            return PasswordAuthentication(username, password)
+                        }
+                    })
 
-            // Открываем стандартный почтовый Intent
-            val fallbackIntent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:$emailTo")
-                putExtra(Intent.EXTRA_SUBJECT, subject)
-                putExtra(Intent.EXTRA_TEXT, body)
-            }
-            if (fallbackIntent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(fallbackIntent)
-            } else {
-                Toast.makeText(context, "Нет почтовых приложений1", Toast.LENGTH_SHORT).show()
-            }
+                    // Создаем и отправляем письмо
+                    val message = MimeMessage(session).apply {
+                        setFrom(InternetAddress(username))
+                        addRecipient(Message.RecipientType.TO, InternetAddress(to))
+                        setSubject(subject)
+                        setText(body)
+                    }
+
+                    Transport.send(message)
+                    Log.d("EmailSender", "Письмо отправлено!")
+                } catch (e: Exception) {
+                    Log.e("EmailSender", "Ошибка: ${e.message}")
+                }
+            }.start()
         }
     }
 
@@ -149,7 +164,11 @@ class MainActivity : AppCompatActivity() {
                 startLocationUpdates()
             } else {
                 // Разрешение не предоставлено
-                Toast.makeText(this, "Разрешение на доступ к местоположению необходимо", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    "Разрешение на доступ к местоположению необходимо",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -172,5 +191,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-}
 
+    private fun refreshEmailList() {
+        emailContainer.removeAllViews()
+        val emails = dbHelper.getAllEmails()
+
+        emails.forEach { email ->
+            val textView = TextView(this).apply {
+                text = email
+                gravity = android.view.Gravity.CENTER
+                setTextAppearance(android.R.style.TextAppearance_Medium)
+                setPadding(0, 16.dpToPx(this@MainActivity), 0, 16.dpToPx(this@MainActivity))
+//                background = resources.getDrawable(R.drawable.email_item_border)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 0, 8.dpToPx(this@MainActivity))
+                }
+            }
+            emailContainer.addView(textView)
+        }
+    }
+
+}

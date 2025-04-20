@@ -8,6 +8,20 @@
     tools:context=".MainActivity">
 
     <TextView
+        android:id="@+id/locationTextView2"
+        android:layout_width="210dp"
+        android:layout_height="30dp"
+        android:text="Получатели IAmHere:"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@id/emailContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.502"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editTextText"
+        app:layout_constraintVertical_bias="0.454" />
+
+    <TextView
         android:id="@+id/locationTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -24,12 +38,12 @@
         android:id="@+id/editTextText"
         android:layout_width="wrap_content"
         android:layout_height="50dp"
-        android:layout_marginTop="44dp"
+        android:layout_marginTop="4dp"
         android:ems="10"
-        android:hint="Enter the text"
+        android:hint="SOS! Моё местоположение"
         android:inputType="text"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintHorizontal_bias="0.502"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/locationTextView" />
 
@@ -37,11 +51,35 @@
         android:id="@+id/button"
         android:layout_width="248dp"
         android:layout_height="248dp"
-        android:layout_marginTop="232dp"
+        android:layout_marginTop="276dp"
         android:text="I'm here"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/editTextText" />
+
+    <LinearLayout
+        android:id="@+id/emailContainer"
+        android:layout_width="337dp"
+        android:layout_height="149dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editTextText"></LinearLayout>
+
+    <Button
+        android:id="@+id/addButton"
+        android:layout_width="65dp"
+        android:layout_height="65dp"
+        android:fontFamily="sans-serif"
+        android:text="+"
+        android:textSize="30sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/editTextText"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.222" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
