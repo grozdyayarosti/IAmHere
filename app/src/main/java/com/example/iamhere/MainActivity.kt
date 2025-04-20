@@ -1,13 +1,17 @@
 package com.example.iamhere
 import android.content.Intent
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -15,9 +19,13 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import kotlin.properties.Delegates
 
 class MainActivity : AppCompatActivity() {
 
+//    private var latitude: Double = Nullable
+    private var latitude by Delegates.notNull<Double>()
+    private var longitude by Delegates.notNull<Double>()
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationTextView: TextView
     private val LOCATION_PERMISSION_REQUEST_CODE = 1001
@@ -44,8 +52,8 @@ class MainActivity : AppCompatActivity() {
 //        }
 
         button.setOnClickListener {
-            val latitude = 59.9343  // Пример: координаты Санкт-Петербурга
-            val longitude = 30.3351
+//            val latitude = 59.9343  // Пример: координаты Санкт-Петербурга
+//            val longitude = 30.3351
 
             // Формируем текст с координатами и ссылкой на карты
             val locationText = """
@@ -57,10 +65,16 @@ class MainActivity : AppCompatActivity() {
                 https://www.google.com/maps?q=$latitude,$longitude
             """.trimIndent()
 
-            sendLocationByEmail(
-                email = "semenzabolotko.ib@gmail.com", // Замените на нужный email
+//            sendLocationByEmail(
+//                email = "semenzabolotko.ib@gmail.com", // Замените на нужный email
+//                subject = "Моё местоположение",
+//                message = locationText
+//            )
+            openGmailDirectly(
+                context = this,
+                emailTo = "semenzabolotko.ib@gmail.com",
                 subject = "Моё местоположение",
-                message = locationText
+                body = "Широта: $latitude, Долгота: $longitude\nhttps://maps.google.com?q=59.9343,30.3351"
             )
 
 //            val text = userData.text.toString().trim()
@@ -72,19 +86,37 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendLocationByEmail(email: String, subject: String, message: String) {
+    private fun openGmailDirectly(
+        context: Context,
+        emailTo: String,
+        subject: String,
+        body: String
+    ) {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(email)) // Получатель
-            putExtra(Intent.EXTRA_SUBJECT, subject)      // Тема письма
-            putExtra(Intent.EXTRA_TEXT, message)         // Текст письма
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(emailTo))  // Получатель
+            putExtra(Intent.EXTRA_SUBJECT, subject)         // Тема
+            putExtra(Intent.EXTRA_TEXT, body)              // Текст
+            setPackage("com.google.android.gm")             // Указываем пакет Gmail
         }
 
-        // Проверяем, есть ли приложения для обработки Intent
-        if (intent.resolveActivity(packageManager) != null) {
-            startActivity(Intent.createChooser(intent, "Отправить через..."))
-        } else {
-            Toast.makeText(this, "Нет приложений для отправки email", Toast.LENGTH_SHORT).show()
+        try {
+            context.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            // Если Gmail не установлен, предлагаем альтернативу
+            Toast.makeText(context, "Gmail не найден", Toast.LENGTH_SHORT).show()
+
+            // Открываем стандартный почтовый Intent
+            val fallbackIntent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:$emailTo")
+                putExtra(Intent.EXTRA_SUBJECT, subject)
+                putExtra(Intent.EXTRA_TEXT, body)
+            }
+            if (fallbackIntent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(fallbackIntent)
+            } else {
+                Toast.makeText(context, "Нет почтовых приложений1", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -130,8 +162,8 @@ class MainActivity : AppCompatActivity() {
         ) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
-                    val latitude = location.latitude
-                    val longitude = location.longitude
+                    latitude = location.latitude
+                    longitude = location.longitude
                     locationTextView.text = "Широта: $latitude\nДолгота: $longitude"
                 } else {
                     locationTextView.text = "Местоположение недоступно"
