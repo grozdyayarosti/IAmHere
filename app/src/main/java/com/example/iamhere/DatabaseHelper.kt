@@ -20,7 +20,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "EmailsDB", n
         """.trimIndent())
 
 //         Добавляем тестовые данные
-        db.execSQL("INSERT INTO $TABLE_NAME ($COL_EMAIL) VALUES ('email1@example.com')")
+//        db.execSQL("INSERT INTO $TABLE_NAME ($COL_EMAIL) VALUES ('email1@example.com')")
 //        db.execSQL("INSERT INTO $TABLE_NAME ($COL_EMAIL) VALUES ('email2@example.com')")
     }
 
@@ -46,6 +46,18 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "EmailsDB", n
         val db = writableDatabase
         return try {
             db.execSQL("INSERT OR IGNORE INTO $TABLE_NAME ($COL_EMAIL) VALUES (?)", arrayOf(email))
+            true
+        } catch (e: Exception) {
+            false
+        } finally {
+            db.close()
+        }
+    }
+
+    fun removeEmail(email: String): Boolean {
+        val db = writableDatabase
+        return try {
+            db.execSQL("DELETE FROM $TABLE_NAME WHERE $COL_EMAIL = '$email'")
             true
         } catch (e: Exception) {
             false

@@ -1,7 +1,6 @@
 package com.example.iamhere
 
 import DatabaseHelper
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
@@ -9,13 +8,12 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 
-class AddEmailActivity : ComponentActivity() {
+class RemoveEmailActivity : ComponentActivity() {
     private lateinit var dbHelper: DatabaseHelper
 
-    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_email)
+        setContentView(R.layout.activity_remove_email)
 
         dbHelper = DatabaseHelper(this)
         val emailInput = findViewById<EditText>(R.id.newEmailInput)
@@ -32,13 +30,13 @@ class AddEmailActivity : ComponentActivity() {
                 !android.util.Patterns.EMAIL_ADDRESS.matcher(newEmail).matches() -> {
                     Toast.makeText(this, "Введите корректный gmail", Toast.LENGTH_SHORT).show()
                 }
-                dbHelper.addEmail(newEmail) -> {
+                dbHelper.removeEmail(newEmail) -> {
                     val resultIntent = Intent()
                     setResult(RESULT_OK, resultIntent)
                     finish()
                 }
                 else -> {
-                    Toast.makeText(this, "Такой email уже существует", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Ошибка", Toast.LENGTH_SHORT).show()
                 }
             }
         }
